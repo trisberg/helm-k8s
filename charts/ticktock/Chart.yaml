@@ -1,0 +1,11 @@
+apiVersion: v1
+description: A Helm chart for Kubernetes
+name: ticktock
+version: 0.1.0
+home: http://cloud.spring.io/spring-cloud-stream-app-starters/
+sources:
+- https://github.com/spring-cloud-stream-app-starters
+icon: https://raw.githubusercontent.com/spring-cloud/spring-cloud-dataflow/master/spring-cloud-dataflow-docs/src/main/docbook/images/logo.png
+maintainers:
+- name: trisberg
+  email: trisberg@pivotal.io

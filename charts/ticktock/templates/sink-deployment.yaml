@@ -1,0 +1,63 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}-sink
+  labels:
+    app: {{ template "name" . }}
+    component: sink
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.sink.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "name" . }}
+        component: sink
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.sink.image.repository }}:{{ .Values.sink.image.tag }}"
+          imagePullPolicy: {{ .Values.sink.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.sink.service.internalPort }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.sink.service.internalPort }}
+            initialDelaySeconds: 60
+            timeoutSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.sink.service.internalPort }}
+            initialDelaySeconds: 30
+            timeoutSeconds: 15
+          env:
+          - name: SPRING_CLOUD_CONFIG_ENABLED
+            value: 'false'
+          - name: ENDPOINTS_SHUTDOWN_ENABLED
+            value: 'true'
+          - name: SPRING_CLOUD_APPLICATION_GROUP
+            value: ticktock
+          - name: SPRING_APPLICATION_JSON
+            value: '{"spring.cloud.stream.bindings.input.group": "ticktock", "spring.cloud.stream.bindings.input.destination": "ticktock.time"}'
+          - name: SPRING_RABBITMQ_HOST
+            value: '${{ printf "{%s" .Release.Name | upper }}_RABBITMQ_SERVICE_HOST}'
+          - name: SPRING_RABBITMQ_PORT
+            value: '${{ printf "{%s" .Release.Name | upper }}_RABBITMQ_SERVICE_PORT_AMPQ}'
+          - name: SPRING_RABBITMQ_USERNAME
+            value: '{{ .Values.rabbitmq.rabbitmqUsername }}'
+          - name: SPRING_RABBITMQ_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ printf "%s-%s" .Release.Name "rabbitmq" | trunc 63 | trimSuffix "-" }}
+                key: rabbitmq-password
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
